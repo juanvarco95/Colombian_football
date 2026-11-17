@@ -24,14 +24,6 @@
 
 # COMMAND ----------
 
-dbutils.library.restartPython()
-
-# COMMAND ----------
-
-# MAGIC %pip install requests
-
-# COMMAND ----------
-
 # DBTITLE 1,Init run logger
 logger = get_logger("landing")
 
