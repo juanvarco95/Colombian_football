@@ -1,0 +1,41 @@
+# Databricks Asset Bundle for the Colombian football medallion pipeline.
+# Docs: https://docs.databricks.com/dev-tools/bundles/
+#
+#   databricks bundle validate           # check config
+#   databricks bundle deploy             # upload notebooks + job (dev target)
+#   databricks bundle run football_pipeline
+
+bundle:
+  name: colombian_football
+
+resources:
+  jobs:
+    football_pipeline:
+      name: football_pipeline
+      # No cluster config: tasks run on serverless compute.
+      tasks:
+        - task_key: landing
+          notebook_task:
+            notebook_path: ./notebooks/landing/Landing.py
+
+        - task_key: bronze
+          depends_on:
+            - task_key: landing
+          notebook_task:
+            notebook_path: ./notebooks/bronze/AutoLoader.py
+
+        - task_key: silver
+          depends_on:
+            - task_key: bronze
+          notebook_task:
+            notebook_path: "./notebooks/silver/Transform Row Data.py"
+
+targets:
+  dev:
+    # Development mode: resources are prefixed with "[dev <user>]",
+    # job schedules are paused, and files deploy under your user folder.
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-d390eebe-258b.cloud.databricks.com
+      profile: JuanDev

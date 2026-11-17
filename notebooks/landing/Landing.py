@@ -9,8 +9,8 @@
 # MAGIC * **Target:** `/Volumes/football_col_dev/landing/raw/api_football/fixtures/` (one timestamped JSON file per season)
 # MAGIC
 # MAGIC **How it works**
-# MAGIC 1. `%pip install requests` and restart the Python environment.
-# MAGIC 2. Loads shared imports and the run logger from `../common/setup`.
+# MAGIC 1. Uses the preinstalled `requests` library (no `%pip install` needed on serverless).
+# MAGIC 2. Imports shared setup (imports + logger) from `../common/setup.py`.
 # MAGIC 3. Discovers all available seasons for league 239 and calls the `fixtures` endpoint once per season, writing one timestamped JSON file per season.
 # MAGIC 4. Every API call and every landed file is logged.
 # MAGIC
@@ -20,7 +20,13 @@
 # COMMAND ----------
 
 # DBTITLE 1,Load shared setup (imports + logger)
-# MAGIC %run ../common/Setup
+import os
+import sys
+
+# The notebook's working directory is its own folder, so this resolves in both
+# the Git folder and the bundle deploy path.
+sys.path.append(os.path.abspath("../common"))
+from setup import *  # shared imports (F, requests, DeltaTable, ...) + get_logger
 
 # COMMAND ----------
 

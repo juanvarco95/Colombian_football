@@ -3,8 +3,8 @@ Shared setup for the Colombian football pipeline.
 
 Every notebook under notebooks/ starts its imports cell with:
 
-    import sys
-    sys.path.append('/Workspace/Users/juanvarco95@gmail.com/Colombian_football/notebooks/common')
+    import os, sys
+    sys.path.append(os.path.abspath("../common"))
     from setup import *  # shared imports (F, requests, ...) + logger factory
 
 Single source of truth for:
