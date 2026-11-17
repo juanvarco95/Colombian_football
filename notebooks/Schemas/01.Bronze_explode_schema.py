@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # DBTITLE 1,Schema documentation
 # MAGIC %md
 # MAGIC # bronze_explode_schema
@@ -37,10 +41,14 @@ bronze_explode_schema = StructType([
     StructField("away_penalty_goals",   LongType(),    nullable=True),
     StructField("home_winner",          BooleanType(), nullable=True),
     StructField("away_winner",          BooleanType(), nullable=True),
+    StructField("league_id",    LongType(),    nullable=True),
+    StructField("status",       StringType(),  nullable=True),
+    StructField("status_long",  StringType(),  nullable=True),
+    StructField("is_finished",  BooleanType(), nullable=True),
+    StructField("venue_id",     LongType(),    nullable=True),
+    StructField("home_team_id", LongType(),    nullable=True),
+    StructField("away_team_id", LongType(),    nullable=True),
     # ingestion timestamp from bronze — lets the silver MERGE update a fixture on a newer ingest
     StructField("_ingested_at",          TimestampType(), nullable=True),
+    StructField("_source_file",            StringType(),  nullable=True)
 ])
-
-
-# COMMAND ----------
-

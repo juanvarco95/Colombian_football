@@ -26,7 +26,3 @@ response_schema = (
     "teams: STRUCT<away: STRUCT<id: BIGINT, logo: STRING, name: STRING, winner: BOOLEAN>, "
     "home: STRUCT<id: BIGINT, logo: STRING, name: STRING, winner: BOOLEAN>>>>"
 )
-
-
-# COMMAND ----------
-

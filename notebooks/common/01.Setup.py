@@ -3,17 +3,18 @@
 # [tool.databricks.environment]
 # environment_version = "6"
 # ///
-"""
-Shared setup for the Colombian football pipeline.
-
-Every notebook under notebooks/ starts its first runnable cell with:
-
-    %run ../common/01.Setup
-
-Single source of truth for:
-  * all common imports (standard library, requests, PySpark helpers)
-  * a configured logger so every pipeline run leaves a trace
-"""
+# MAGIC %md
+# MAGIC
+# MAGIC # Shared setup for the Colombian football pipeline.
+# MAGIC
+# MAGIC Every notebook under notebooks/ starts its first runnable cell with:
+# MAGIC
+# MAGIC     %run ../common/01.Setup
+# MAGIC
+# MAGIC Single source of truth for:
+# MAGIC   * All common imports (standard library, requests, PySpark helpers)
+# MAGIC   * A configured logger so every pipeline run leaves a trace
+# MAGIC
 
 # COMMAND ----------
 
@@ -38,6 +39,7 @@ from pyspark.sql.types import (
     StringType,
     StructField,
     StructType,
+    IntegerType
 )
 
 

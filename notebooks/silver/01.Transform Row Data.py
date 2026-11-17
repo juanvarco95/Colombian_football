@@ -30,17 +30,17 @@
 # COMMAND ----------
 
 # DBTITLE 1,Load response schema
-# MAGIC %run ../Schemas/response_schema
+# MAGIC %run ../Schemas/03.Response_schema
 
 # COMMAND ----------
 
 # DBTITLE 1,Load parameters schema
-# MAGIC %run ../Schemas/parameters_schema
+# MAGIC %run ../Schemas/02.Parameters_schema
 
 # COMMAND ----------
 
 # DBTITLE 1,Load bronze explode schema
-# MAGIC %run ../Schemas/bronze_explode_schema
+# MAGIC %run ../Schemas/01.Bronze_explode_schema
 
 # COMMAND ----------
 
@@ -70,13 +70,14 @@ bronze_explode_df = (
             # ingestion metadata — ranks duplicates for dedup, and is kept in the output
             # so the silver MERGE can update a row when a newer ingest arrives
             F.col("_ingested_at"),
+            F.col("_source_file"),
             # explode the JSON response array into one row per fixture, typed by the DDL schemas from ../Schemas/
             F.explode(F.from_json(F.col("response"), response_schema)).alias("response"),
             F.from_json(F.col("parameters"), parameters_schema).alias("parameters"),
         )
         .withColumns({
             'id':      F.col('response.fixture.id'),
-            'season':  F.col('parameters.season'),
+            'season':  F.col('parameters.season').cast("int"),
             # try_cast: null-safe date parsing (a malformed API value yields NULL instead of failing the run)
             'date':    F.date_format(F.expr("try_cast(response.fixture.date AS DATE)"), 'dd-MM-yyyy'),
             'league':  F.col('response.league.name'),
@@ -96,7 +97,14 @@ bronze_explode_df = (
             'away_penalty_goals': F.col('response.score.penalty.away'),
             'home_winner': F.col('response.teams.home.winner'),
             'away_winner': F.col('response.teams.away.winner'),
+            "league_id":     F.col("response.league.id"),
+            "status":        F.col("response.fixture.status.short"),
+            "status_long":   F.col("response.fixture.status.long"),
+            "venue_id":      F.col("response.fixture.venue.id"),
+            "home_team_id":  F.col("response.teams.home.id"),
+            "away_team_id":  F.col("response.teams.away.id"),
         })
+        .withColumn("is_finished", F.col("status").isin("FT", "AET", "PEN", "AWD", "WO"))
         # keep only the latest ingest per fixture id
         .withColumn('rn', F.row_number().over(latest))
         # split the API round label into phase and number, e.g. 'Apertura - 1' -> ('Apertura', 1)
@@ -133,7 +141,7 @@ bronze_explode_df.createOrReplaceTempView("bronze_explode_df")
 
 # MAGIC %sql
 # MAGIC select * from bronze_explode_df
-# MAGIC where number_round = 0
+# MAGIC
 
 # COMMAND ----------
 
@@ -197,12 +205,6 @@ logger.info(
 # COMMAND ----------
 
 # DBTITLE 1,Check silver sample rows
-# Quick check: sample silver rows for one team (pure PySpark, no SQL)
-display(
-    spark.table(target_table)
-        .filter(F.col("number_round") == 0)
-        .orderBy(F.col("date").asc())
-)
-
-# COMMAND ----------
-
+# MAGIC %sql
+# MAGIC select * from football_col_dev.silver.api_fixtures
+# MAGIC

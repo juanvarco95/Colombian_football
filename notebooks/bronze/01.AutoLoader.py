@@ -52,6 +52,7 @@ df_raw = (
 bronze_query = (
     df_raw.withColumns({
             "_source_file"  : F.col("_metadata.file_path"),
+            "_file_modified_at": F.col("_metadata.file_modification_time"),
             "_ingested_at"  : F.current_timestamp()
         }
     )
@@ -74,6 +75,3 @@ logger.info(f"Bronze ingestion completed | {rows_written} new rows written to {t
 
 # MAGIC %sql
 # MAGIC select * from football_col_dev.bronze.api_fixtures
-
-# COMMAND ----------
-
