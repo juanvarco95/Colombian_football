@@ -10,7 +10,7 @@
 # MAGIC
 # MAGIC **How it works**
 # MAGIC 1. Uses the preinstalled `requests` library (no `%pip install` needed on serverless).
-# MAGIC 2. Imports shared setup (imports + logger) from `../common/setup.py`.
+# MAGIC 2. Loads shared setup (imports + logger) via `%run ../common/01.Setup`.
 # MAGIC 3. Discovers all available seasons for league 239 and calls the `fixtures` endpoint once per season, writing one timestamped JSON file per season.
 # MAGIC 4. Every API call and every landed file is logged.
 # MAGIC
@@ -20,13 +20,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Load shared setup (imports + logger)
-import os
-import sys
-
-# The notebook's working directory is its own folder, so this resolves in both
-# the Git folder and the bundle deploy path.
-sys.path.append(os.path.abspath("../common"))
-from setup import *  # shared imports (F, requests, DeltaTable, ...) + get_logger
+# MAGIC %run ../common/01.Setup
 
 # COMMAND ----------
 

@@ -12,7 +12,3 @@
 
 # DBTITLE 1,DDL schema of the raw parameters JSON column
 parameters_schema = "STRUCT<league: STRING, season: STRING>"
-
-
-# COMMAND ----------
-

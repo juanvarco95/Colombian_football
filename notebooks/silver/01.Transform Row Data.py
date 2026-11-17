@@ -13,7 +13,7 @@
 # MAGIC * **Target:** `football_col_dev.silver.api_fixtures` (MERGE — inserts fixtures not yet present, keyed by `id`)
 # MAGIC
 # MAGIC **How it works**
-# MAGIC 1. Loads shared imports and the run logger from `../common/setup.py` (imported as a module).
+# MAGIC 1. Loads shared imports and the run logger via `%run ../common/01.Setup`.
 # MAGIC 2. Loads each schema from its own notebook in `../Schemas/` (`response_schema`, `parameters_schema`, `bronze_explode_schema`) via `%run`.
 # MAGIC 3. Parses the `response` / `parameters` JSON columns with `from_json` + `explode` and flattens them into one row per fixture.
 # MAGIC 4. Deduplicates to the latest ingest per fixture id (window `row_number` over `_ingested_at`), derives `round` / `number_round` from the API round label (null-safe `try_cast`), uses null-safe `try_cast` for the date, and enforces the explicit 22-column output schema (21 fixture columns incl. `number_round` + `_ingested_at`) with `.to(bronze_explode_schema)`.
@@ -25,13 +25,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Load shared setup (imports + logger)
-import os
-import sys
-
-# The notebook's working directory is its own folder, so this resolves in both
-# the Git folder and the bundle deploy path.
-sys.path.append(os.path.abspath("../common"))
-from setup import *  # shared imports (F, requests, DeltaTable, ...) + get_logger
+# MAGIC %run ../common/01.Setup
 
 # COMMAND ----------
 
@@ -51,7 +45,7 @@ from setup import *  # shared imports (F, requests, DeltaTable, ...) + get_logge
 # COMMAND ----------
 
 # DBTITLE 1,Read bronze source table
-# Run logger from ../common/setup.py, tagged to this notebook
+# Run logger from ../common/01.Setup (loaded via %run), tagged to this notebook
 logger = get_logger("transform_row_data")
 
 source_table = 'football_col_dev.bronze.api_fixtures'

@@ -13,7 +13,7 @@
 # MAGIC * **Target:** `football_col_dev.bronze.api_fixtures` (streaming append + metadata columns)
 # MAGIC
 # MAGIC **How it works**
-# MAGIC 1. Imports shared setup (imports + logger) from `../common/setup.py`.
+# MAGIC 1. Loads shared setup (imports + logger) via `%run ../common/01.Setup`.
 # MAGIC 2. Auto Loader (`cloudFiles`) picks up new files; schema evolution is tracked in `_schemas/fixtures`.
 # MAGIC 3. Appends rows plus `_source_file` and `_ingested_at` metadata to bronze, checkpointed at `_checkpoints/bronze_fixtures`.
 # MAGIC 4. Trigger `availableNow=True` processes all pending files and then stops. Rows written are logged.
@@ -24,13 +24,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Load shared setup (imports + logger)
-import os
-import sys
-
-# The notebook's working directory is its own folder, so this resolves in both
-# the Git folder and the bundle deploy path.
-sys.path.append(os.path.abspath("../common"))
-from setup import *  # shared imports (F, requests, DeltaTable, ...) + get_logger
+# MAGIC %run ../common/01.Setup
 
 # COMMAND ----------
 

@@ -1,16 +1,24 @@
+# Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 """
 Shared setup for the Colombian football pipeline.
 
-Every notebook under notebooks/ starts its imports cell with:
+Every notebook under notebooks/ starts its first runnable cell with:
 
-    import os, sys
-    sys.path.append(os.path.abspath("../common"))
-    from setup import *  # shared imports (F, requests, ...) + logger factory
+    %run ../common/01.Setup
 
 Single source of truth for:
   * all common imports (standard library, requests, PySpark helpers)
   * a configured logger so every pipeline run leaves a trace
 """
+
+# COMMAND ----------
+
+# DBTITLE 1,Shared setup (imports + logger)
+
 
 import json
 import logging
@@ -29,6 +37,10 @@ from pyspark.sql.types import (
     StructField,
     StructType,
 )
+
+
+
+# COMMAND ----------
 
 
 def get_logger(notebook: str) -> logging.Logger:

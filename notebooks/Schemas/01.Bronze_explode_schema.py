@@ -7,7 +7,7 @@
 # MAGIC
 # MAGIC Besides the fixture columns (including the derived `number_round` — the numeric part of the API round label) it carries `_ingested_at` (ingestion timestamp from bronze), so the silver MERGE can update an existing fixture when a newer ingest arrives.
 # MAGIC
-# MAGIC Loaded by **Transform Row Data** via `%run ../Schemas/bronze_explode_schema` (after `../common/setup.py` is imported, which provides the `pyspark.sql.types` imports; `TimestampType` is imported locally).
+# MAGIC Loaded by **Transform Row Data** via `%run ../Schemas/bronze_explode_schema` (after `%run ../common/01.Setup`, which provides the `pyspark.sql.types` imports; `TimestampType` is imported locally).
 # MAGIC
 
 # COMMAND ----------
