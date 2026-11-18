@@ -16,19 +16,19 @@ resources:
       tasks:
         - task_key: landing
           notebook_task:
-            notebook_path: ./notebooks/landing/Landing.py
+            notebook_path: ./notebooks/landing/01_Landing.ipynb
 
         - task_key: bronze
           depends_on:
             - task_key: landing
           notebook_task:
-            notebook_path: ./notebooks/bronze/AutoLoader.py
+            notebook_path: ./notebooks/bronze/01_AutoLoader.ipynb
 
         - task_key: silver
           depends_on:
             - task_key: bronze
           notebook_task:
-            notebook_path: "./notebooks/silver/Transform Row Data.py"
+            notebook_path: "./notebooks/silver/01_Transform_Row_Data.ipynb"
 
 targets:
   dev:
