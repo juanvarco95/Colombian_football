@@ -1,9 +1,14 @@
 # Databricks Asset Bundle for the Colombian football medallion pipeline.
 # Docs: https://docs.databricks.com/dev-tools/bundles/
 #
-#   databricks bundle validate           # check config
-#   databricks bundle deploy             # upload notebooks + job (dev target)
+#   databricks bundle validate               # check config
+#   databricks bundle deploy                 # upload the job (dev target)
 #   databricks bundle run football_pipeline
+#
+# Architecture (post Fase 4): the bronze/silver/gold layers are owned by the
+# Spark Declarative Pipeline (Colombian Football Medallion Pipeline). This
+# job only 1) lands new raw API-Football files via the Landing notebook,
+# then 2) triggers a pipeline update that reprocesses them end to end.
 
 bundle:
   name: colombian_football
@@ -14,21 +19,24 @@ resources:
       name: football_pipeline
       # No cluster config: tasks run on serverless compute.
       tasks:
+        # 1. Land raw API-Football JSON files into the landing volume.
         - task_key: landing
           notebook_task:
             notebook_path: ./notebooks/landing/01_Landing.ipynb
 
-        - task_key: bronze
+        # 2. Update the medallion pipeline (bronze -> silver -> gold).
+        #    References the existing workspace pipeline created in Fase 4.
+        #    NOTE: the old bronze/silver notebook tasks were removed — those
+        #    tables are pipeline-owned now, and writing to them from the
+        #    notebooks would conflict (silver is a materialized view: no
+        #    MERGE possible). For a staging/prod target, define the pipeline
+        #    as a bundle `pipelines:` resource with its own catalog variable
+        #    instead of the literal id, so each target owns its pipeline.
+        - task_key: medallion
           depends_on:
             - task_key: landing
-          notebook_task:
-            notebook_path: ./notebooks/bronze/01_AutoLoader.ipynb
-
-        - task_key: silver
-          depends_on:
-            - task_key: bronze
-          notebook_task:
-            notebook_path: "./notebooks/silver/01_Transform_Row_Data.ipynb"
+          pipeline_task:
+            pipeline_id: af05b752-347a-4b8d-b1c3-7140f6d9d842
 
 targets:
   dev:

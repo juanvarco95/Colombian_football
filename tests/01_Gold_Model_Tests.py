@@ -1,4 +1,40 @@
 # Databricks notebook source
+# DBTITLE 1,Notebook documentation
+# MAGIC %md
+# MAGIC
+# MAGIC # Gold model tests
+# MAGIC
+# MAGIC Test suite for the gold layer (built by the Spark Declarative Pipeline at `pipelines/`, previously `notebooks/gold/01_Gold_Model`):
+# MAGIC
+# MAGIC 1. **Unit tests** for the pure functions in `notebooks/common/02_Football_Logic`
+# MAGIC    (points, result, tournament, phase classification).
+# MAGIC 2. **Builder tests**: the Spark expression builders must agree with the scalar
+# MAGIC    functions on every case.
+# MAGIC 3. **Data tests** on the built gold tables: fact grain (exactly 2 rows per
+# MAGIC    match), points/result consistency, standings shape, dimension coverage.
+# MAGIC
+# MAGIC Every check is a hard `assert` — a failure stops the run with a clear message.
+# MAGIC
+# MAGIC **Run:** after the pipeline (or the gold notebook) has run at least once.
+# MAGIC (Future: port to pytest + GitHub Actions CI per the project spec, Fase 6.)
+
+# COMMAND ----------
+
+# DBTITLE 1,Load shared setup (imports + logger)
+# MAGIC %run ../notebooks/common/01_Setup
+
+# COMMAND ----------
+
+# DBTITLE 1,Load pipeline configuration (constants)
+# MAGIC %run ../notebooks/common/02_Config
+
+# COMMAND ----------
+
+# DBTITLE 1,Load football domain logic (functions)
+# MAGIC %run ../notebooks/common/02_Football_Logic
+
+# COMMAND ----------
+
 # DBTITLE 1,Unit tests: pure functions
 # Unit tests for the pure functions in ../common/02_Football_Logic.
 from datetime import date
@@ -146,42 +182,3 @@ logger.info(
     f"Test run completed | {tests_passed} unit + data checks passed, "
     "plus 7 Spark builder checks"
 )
-
-# COMMAND ----------
-
-# DBTITLE 1,Notebook documentation
-# MAGIC %md
-# MAGIC
-# MAGIC # Gold model tests
-# MAGIC
-# MAGIC Test suite for the gold layer:
-# MAGIC
-# MAGIC 1. **Unit tests** for the pure functions in `common/02_Football_Logic`
-# MAGIC    (points, result, tournament, phase classification).
-# MAGIC 2. **Builder tests**: the Spark expression builders must agree with the scalar
-# MAGIC    functions on every case.
-# MAGIC 3. **Data tests** on the built gold tables: fact grain (exactly 2 rows per
-# MAGIC    match), points/result consistency, standings shape, dimension coverage.
-# MAGIC
-# MAGIC Every check is a hard `assert` — a failure stops the run with a clear message.
-# MAGIC
-# MAGIC **Run:** after `notebooks/gold/01_Gold_Model` has run at least once.
-# MAGIC (Future: port to pytest + GitHub Actions CI per the project spec, Fase 6.)
-
-# COMMAND ----------
-
-# DBTITLE 1,Load shared setup (imports + logger)
-# MAGIC %run ../common/01_Setup
-
-# COMMAND ----------
-
-# DBTITLE 1,Load pipeline configuration (constants)
-# MAGIC %run ../common/02_Config
-
-# COMMAND ----------
-
-# DBTITLE 1,Load football domain logic (functions)
-# MAGIC %run ../common/02_Football_Logic
-
-# COMMAND ----------
-
