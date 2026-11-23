@@ -1,0 +1,34 @@
+# The medallion pipeline (bronze/silver/gold + views) as a bundle resource.
+# Catalog, tables and volume paths come from ${var.catalog} — the Python
+# sources read it from the `football.catalog` configuration key, the SQL
+# views from the `catalog` pipeline parameter.
+resources:
+  pipelines:
+    medallion_pipeline:
+      name: Colombian Football Medallion Pipeline
+
+      # Publishes to the target's catalog; dataset names are fully qualified
+      # by pipelines/common/config.py (bronze/silver/gold schemas).
+      catalog: ${var.catalog}
+      target: default
+
+      # Pipeline source: the git-tracked pipelines/ folder in this bundle.
+      root_path: ../pipelines
+      libraries:
+        - glob:
+            include: ../pipelines/**
+
+      serverless: true
+      photon: true
+      channel: CURRENT
+      continuous: false
+      # Development vs production mode follows the bundle target's `mode`
+      # (dev target -> development, prod target -> production).
+
+      # Python sources resolve the catalog from this Spark conf (spark.conf).
+      configuration:
+        football.catalog: ${var.catalog}
+
+      # SQL sources (v_standings, v_points_progression) use :catalog.
+      parameters:
+        catalog: ${var.catalog}

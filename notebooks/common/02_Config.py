@@ -2,16 +2,19 @@
 # DBTITLE 1,Notebook documentation
 # MAGIC %md
 # MAGIC
-# MAGIC # Pipeline configuration
+# MAGIC # Pipeline configuration (thin loader)
 # MAGIC
-# MAGIC The single source of truth for every name in the project: catalog, schemas,
-# MAGIC tables, volume paths, API settings and workspace paths.
+# MAGIC The single source of truth for every name in the project is
+# MAGIC `pipelines/common/config.py` — git-tracked, unit-tested, and shared verbatim
+# MAGIC with the Spark Declarative Pipeline. This notebook only loads that module, so
+# MAGIC notebooks and pipeline can never drift apart.
 # MAGIC
-# MAGIC * No catalog, schema, table, path or API value may be hardcoded in any notebook
-# MAGIC   other than this one (`01_Setup` holds imports + logger).
-# MAGIC * Every pipeline notebook loads these constants via `%run ../common/02_Config`.
-# MAGIC * Change a value here once (e.g. promoting `football_col_dev` → `football_col_prod`)
-# MAGIC   and every notebook picks it up on its next run.
+# MAGIC * No constant lives here. `%run ../common/02_Config` still defines every name
+# MAGIC   (`CATALOG`, table names, volume paths, API settings) in the caller's
+# MAGIC   namespace — existing notebooks keep working unchanged.
+# MAGIC * The `catalog` widget selects which catalog the names resolve to: the
+# MAGIC   bundle's job sets it to `football_col_prod` for the prod target; the
+# MAGIC   default is `football_col_dev`.
 
 # COMMAND ----------
 
@@ -22,38 +25,30 @@
 
 # DBTITLE 1,Configuration constants (single source of truth)
 # ---------------------------------------------------------------------------
-# Pipeline configuration — single source of truth.
-#
-# The only place where catalog, schema, table, volume, API or workspace names
-# may be hardcoded. Every other notebook loads these constants via
-# `%run ../common/02_Config` and never hardcodes a name itself.
+# Thin loader — NO constants live here.
+# Source of truth: pipelines/common/config.py (shared with the pipeline;
+# catalog resolution: FOOTBALL_CATALOG env var > football.catalog pipeline
+# config > football_col_dev default).
 # ---------------------------------------------------------------------------
+import sys
 
-CATALOG = "football_col_dev"
+PIPELINES_DIR = "/Workspace/Users/juanvarco95@gmail.com/Colombian_football/pipelines"
+if PIPELINES_DIR not in sys.path:
+    sys.path.append(PIPELINES_DIR)
 
-# Medallion tables (fully qualified names)
-BRONZE_TABLE = f"{CATALOG}.bronze.api_fixtures"
-SILVER_TABLE = f"{CATALOG}.silver.api_fixtures"
-GOLD_SCHEMA = f"{CATALOG}.gold"
-GOLD_FACT_TEAM_MATCH = f"{GOLD_SCHEMA}.fact_team_match"
-GOLD_DIM_TEAM = f"{GOLD_SCHEMA}.dim_team"
-GOLD_DIM_DATE = f"{GOLD_SCHEMA}.dim_date"
+from common import config as _config
 
-# Landing zone (UC volume): raw files, Auto Loader schema and checkpoints
-RAW_VOLUME = f"/Volumes/{CATALOG}/landing/raw"
-API_FOOTBALL_DIR = f"{RAW_VOLUME}/api_football"
-FIXTURES_DIR = f"{API_FOOTBALL_DIR}/fixtures"
-SCHEMA_LOCATION = f"{RAW_VOLUME}/_schemas/fixtures"
-CHECKPOINT_LOCATION = f"{RAW_VOLUME}/_checkpoints/bronze_fixtures"
+# Job/notebook parameter: which catalog this run targets (dev by default).
+dbutils.widgets.text("catalog", _config.resolve_catalog())
+_catalog = dbutils.widgets.get("catalog").strip() or _config.DEFAULT_CATALOG
 
-# API-Football (free plan: 10 requests/minute, 100/day, seasons 2022-2024)
-API_BASE_URL = "https://v3.football.api-sports.io"
-LEAGUE_ID = 239  # Colombian Primera A
-SECRET_SCOPE = "football_scope"
-SECRET_KEY = "api_football_key"
-SECONDS_BETWEEN_CALLS = 7
-RATE_LIMIT_WAIT = 60
-
-# Workspace layout: standalone SQL scripts executed by the gold notebook
-PROJECT_ROOT = "/Workspace/Users/juanvarco95@gmail.com/Colombian_football"
-SQL_DIR = f"{PROJECT_ROOT}/sql"
+# Re-export every constant into this notebook's namespace for %run consumers
+_ns = _config.for_catalog(_catalog)
+globals().update(vars(_ns))
+globals().update({
+    name: getattr(_config, name)
+    for name in (
+        "API_BASE_URL", "LEAGUE_ID", "SECRET_SCOPE", "SECRET_KEY",
+        "SECONDS_BETWEEN_CALLS", "RATE_LIMIT_WAIT", "PROJECT_ROOT", "SQL_DIR",
+    )
+})

@@ -1,8 +1,10 @@
-"""Football domain logic — mirror of `notebooks/common/02_Football_Logic`.
+"""Football domain logic — the single source of truth.
 
-Pure Python functions (unit-testable) and their Spark-native expression
-builders. Both layers always stay in sync: the gold datasets are built with
-the builders; `notebooks/tests/01_Gold_Model_Tests` asserts both layers agree.
+Pure Python functions (unit-testable in tests/ with pytest) and their
+Spark-native expression builders. Both layers always stay in sync: the gold
+datasets are built with the builders; tests/test_football_logic.py asserts
+both layers agree. `notebooks/common/02_Football_Logic` is a thin shim that
+imports this module (no duplicated copy in the notebooks).
 """
 
 from pyspark.sql import Column

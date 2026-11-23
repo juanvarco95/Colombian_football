@@ -1,7 +1,8 @@
 -- Standings per season and tournament, regular phase only (the all-play-all fechas).
 -- Ranked by points, goal difference, goals for — mirroring the official Dimayor tie-breakers.
 -- The playoff (cuadrangulares) and final phases are excluded: they do not count towards the table.
--- Executed by notebooks/gold/01_Gold_Model; can also be run directly in the SQL editor.
+-- Dev-catalog SQL editor version of pipelines/gold/v_standings.sql; dim_team is SCD2
+-- (join the current version of each team: __END_AT IS NULL).
 CREATE OR REPLACE VIEW football_col_dev.gold.v_standings AS
 SELECT
     f.season,
@@ -21,6 +22,6 @@ SELECT
     ) AS position
 FROM football_col_dev.gold.fact_team_match f
 JOIN football_col_dev.gold.dim_team t
-  ON f.team_id = t.team_id AND t.is_current
+  ON f.team_id = t.team_id AND t.__END_AT IS NULL
 WHERE f.phase = 'regular'
 GROUP BY f.season, f.tournament, t.team_name

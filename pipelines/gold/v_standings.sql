@@ -1,8 +1,9 @@
 -- Standings per season and tournament, regular phase only (the all-play-all fechas).
 -- Ranked by points, goal difference, goals for — mirroring the official Dimayor tie-breakers.
 -- The playoff (cuadrangulares) and final phases are excluded: they do not count towards the table.
--- Same query as the standalone sql/02_create_v_standings.sql (SQL editor version).
-CREATE VIEW football_col_dev.gold.v_standings
+-- dim_team is SCD2: join the current version of each team (__END_AT IS NULL).
+-- :catalog is a pipeline parameter (the bundle sets it per target — dev/prod).
+CREATE VIEW IDENTIFIER(:catalog || '.gold.v_standings')
 COMMENT 'Standings per season/tournament, regular phase only, Dimayor tie-breakers'
 AS
 SELECT
@@ -21,8 +22,8 @@ SELECT
         PARTITION BY f.season, f.tournament
         ORDER BY SUM(f.points) DESC, SUM(f.goals_for - f.goals_against) DESC, SUM(f.goals_for) DESC
     ) AS position
-FROM football_col_dev.gold.fact_team_match f
-JOIN football_col_dev.gold.dim_team t
-  ON f.team_id = t.team_id AND t.is_current
+FROM IDENTIFIER(:catalog || '.gold.fact_team_match') f
+JOIN IDENTIFIER(:catalog || '.gold.dim_team') t
+  ON f.team_id = t.team_id AND t.__END_AT IS NULL
 WHERE f.phase = 'regular'
 GROUP BY f.season, f.tournament, t.team_name

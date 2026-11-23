@@ -1,42 +1,28 @@
 # Databricks Asset Bundle for the Colombian football medallion pipeline.
 # Docs: https://docs.databricks.com/dev-tools/bundles/
 #
-#   databricks bundle validate               # check config
-#   databricks bundle deploy                 # upload the job (dev target)
-#   databricks bundle run football_pipeline
+#   databricks bundle validate --target dev    # check config (dev)
+#   databricks bundle deploy --target dev      # deploy dev resources
+#   databricks bundle run football_pipeline --target dev
+#   databricks bundle validate --target prod   # check config (prod)
+#   databricks bundle deploy --target prod     # what CI runs on main
 #
-# Architecture (post Fase 4): the bronze/silver/gold layers are owned by the
-# Spark Declarative Pipeline (Colombian Football Medallion Pipeline). This
-# job only 1) lands new raw API-Football files via the Landing notebook,
-# then 2) triggers a pipeline update that reprocesses them end to end.
+# Architecture: the pipeline (bronze/silver/gold + views) is defined as a
+# bundle resource reading its catalog from ${var.catalog} — dev deploys to
+# football_col_dev, prod to football_col_prod. The job lands new raw
+# API-Football files via the Landing notebook, then triggers a pipeline
+# update that reprocesses them end to end.
 
 bundle:
   name: colombian_football
 
-resources:
-  jobs:
-    football_pipeline:
-      name: football_pipeline
-      # No cluster config: tasks run on serverless compute.
-      tasks:
-        # 1. Land raw API-Football JSON files into the landing volume.
-        - task_key: landing
-          notebook_task:
-            notebook_path: ./notebooks/landing/01_Landing.ipynb
+include:
+  - resources/*.yml
 
-        # 2. Update the medallion pipeline (bronze -> silver -> gold).
-        #    References the existing workspace pipeline created in Fase 4.
-        #    NOTE: the old bronze/silver notebook tasks were removed — those
-        #    tables are pipeline-owned now, and writing to them from the
-        #    notebooks would conflict (silver is a materialized view: no
-        #    MERGE possible). For a staging/prod target, define the pipeline
-        #    as a bundle `pipelines:` resource with its own catalog variable
-        #    instead of the literal id, so each target owns its pipeline.
-        - task_key: medallion
-          depends_on:
-            - task_key: landing
-          pipeline_task:
-            pipeline_id: af05b752-347a-4b8d-b1c3-7140f6d9d842
+variables:
+  catalog:
+    description: Unity Catalog catalog the medallion pipeline publishes to
+    default: football_col_dev
 
 targets:
   dev:
@@ -44,6 +30,17 @@ targets:
     # job schedules are paused, and files deploy under your user folder.
     mode: development
     default: true
+    variables:
+      catalog: football_col_dev
     workspace:
       host: https://dbc-d390eebe-258b.cloud.databricks.com
-      profile: JuanDev
+
+  prod:
+    # Production mode: stable names, deploys the football_col_prod catalog.
+    mode: production
+    variables:
+      catalog: football_col_prod
+    workspace:
+      host: https://dbc-d390eebe-258b.cloud.databricks.com
+      # Production deploys must have one explicit root (single copy).
+      root_path: /Workspace/Users/juanvarco95@gmail.com/.bundle/colombian_football/prod

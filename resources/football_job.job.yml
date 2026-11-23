@@ -1,0 +1,24 @@
+# The orchestration job: 1) land new raw API-Football files via the Landing
+# notebook, then 2) trigger a medallion pipeline update that reprocesses them
+# end to end. The landing notebook writes to the target's volume via its
+# `catalog` parameter.
+resources:
+  jobs:
+    football_pipeline:
+      name: football_pipeline
+
+      # No cluster config: tasks run on serverless compute.
+      tasks:
+        # 1. Land raw API-Football JSON files into the target catalog's volume.
+        - task_key: landing
+          notebook_task:
+            notebook_path: ../notebooks/landing/01_Landing.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+
+        # 2. Update the medallion pipeline (bronze -> silver -> gold).
+        - task_key: medallion
+          depends_on:
+            - task_key: landing
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.medallion_pipeline.id}

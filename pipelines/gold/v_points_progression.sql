@@ -1,6 +1,7 @@
 -- Cumulative points per team per matchday (regular phase), one line per team in a dashboard chart.
--- Same query as the standalone sql/03_create_v_points_progression.sql (SQL editor version).
-CREATE VIEW football_col_dev.gold.v_points_progression
+-- dim_team is SCD2: join the current version of each team (__END_AT IS NULL).
+-- :catalog is a pipeline parameter (the bundle sets it per target — dev/prod).
+CREATE VIEW IDENTIFIER(:catalog || '.gold.v_points_progression')
 COMMENT 'Cumulative points per team per matchday (regular phase)'
 AS
 SELECT
@@ -13,7 +14,7 @@ SELECT
         PARTITION BY f.season, f.tournament, f.team_id
         ORDER BY f.match_date, f.number_round
     ) AS cumulative_points
-FROM football_col_dev.gold.fact_team_match f
-JOIN football_col_dev.gold.dim_team t
-  ON f.team_id = t.team_id AND t.is_current
+FROM IDENTIFIER(:catalog || '.gold.fact_team_match') f
+JOIN IDENTIFIER(:catalog || '.gold.dim_team') t
+  ON f.team_id = t.team_id AND t.__END_AT IS NULL
 WHERE f.phase = 'regular'

@@ -2,21 +2,21 @@
 # DBTITLE 1,Notebook documentation
 # MAGIC %md
 # MAGIC
-# MAGIC # Gold model tests
+# MAGIC # Gold model tests (data tests)
 # MAGIC
-# MAGIC Test suite for the gold layer (built by the Spark Declarative Pipeline at `pipelines/`, previously `notebooks/gold/01_Gold_Model`):
+# MAGIC Data tests on the gold tables built by the Spark Declarative Pipeline
+# MAGIC (`pipelines/`): fact grain (exactly 2 rows per match), points/result
+# MAGIC consistency, standings shape, SCD2 dim_team validity/coverage, dim_date
+# MAGIC coverage.
 # MAGIC
-# MAGIC 1. **Unit tests** for the pure functions in `notebooks/common/02_Football_Logic`
-# MAGIC    (points, result, tournament, phase classification).
-# MAGIC 2. **Builder tests**: the Spark expression builders must agree with the scalar
-# MAGIC    functions on every case.
-# MAGIC 3. **Data tests** on the built gold tables: fact grain (exactly 2 rows per
-# MAGIC    match), points/result consistency, standings shape, dimension coverage.
+# MAGIC **Unit + builder tests moved to pytest:** `tests/test_football_logic.py`
+# MAGIC runs in GitHub Actions on every PR (pure Python + a local Spark session —
+# MAGIC no workspace needed). This notebook keeps only the checks that need the
+# MAGIC built tables.
 # MAGIC
 # MAGIC Every check is a hard `assert` — a failure stops the run with a clear message.
 # MAGIC
-# MAGIC **Run:** after the pipeline (or the gold notebook) has run at least once.
-# MAGIC (Future: port to pytest + GitHub Actions CI per the project spec, Fase 6.)
+# MAGIC **Run:** after a pipeline update has completed at least once.
 
 # COMMAND ----------
 
@@ -35,82 +35,17 @@
 
 # COMMAND ----------
 
-# DBTITLE 1,Unit tests: pure functions
-# Unit tests for the pure functions in ../common/02_Football_Logic.
-from datetime import date
-
+# DBTITLE 1,Test setup (unit tests moved to pytest)
+# Unit + builder tests live in pytest now: tests/test_football_logic.py
+# (runs in GitHub Actions — see .github/workflows/cicd.yml).
+# This notebook keeps the WORKSPACE data tests on the built gold tables.
 logger = get_logger("gold_model_tests")
-
 tests_passed = 0
-
-
-def check(description: str, actual, expected) -> None:
-    """Assert one expectation and log PASS lines as the tests run."""
-    global tests_passed
-    assert actual == expected, (
-        f"FAILED: {description} — got {actual!r}, expected {expected!r}"
-    )
-    tests_passed += 1
-
-
-# match_points / match_result
-check("points: win", match_points(2, 1), 3)
-check("points: big win", match_points(5, 0), 3)
-check("points: draw", match_points(1, 1), 1)
-check("points: goalless draw", match_points(0, 0), 1)
-check("points: loss", match_points(0, 3), 0)
-check("result: win", match_result(2, 1), "W")
-check("result: draw", match_result(1, 1), "D")
-check("result: loss", match_result(2, 4), "L")
-
-# tournament_from_round
-check("tournament: apertura fecha", tournament_from_round("Apertura - 5"), "Apertura")
-check("tournament: apertura final label", tournament_from_round("Apertura Final"), "Apertura")
-check("tournament: clausura fecha", tournament_from_round("Clausura - 12"), "Clausura")
-check("tournament: clausura quadrangular", tournament_from_round("Clausura - Quadrangular - 3"), "Clausura")
-
-# phase_from_round — body_end is the date of the last regular fecha
-body_end_2022_apertura = date(2022, 5, 16)
-check("phase: final (label 0)", phase_from_round(0, date(2022, 6, 23), body_end_2022_apertura), "final")
-check("phase: playoff (label 1-6 after body end)", phase_from_round(1, date(2022, 5, 21), body_end_2022_apertura), "playoff")
-check("phase: regular (label 1-6 before body end)", phase_from_round(1, date(2022, 1, 20), body_end_2022_apertura), "regular")
-check("phase: regular (label 7+ after body end)", phase_from_round(7, date(2022, 5, 21), body_end_2022_apertura), "regular")
-
-logger.info(f"Unit tests: {tests_passed} passed")
-
-# COMMAND ----------
-
-# DBTITLE 1,Spark builder tests: builders vs scalar functions
-# The Spark builders must agree with the scalar functions on every case.
-cases = [(3, 0), (2, 1), (1, 1), (0, 0), (0, 1), (4, 4), (5, 2)]
-
-builder_df = (
-    spark.createDataFrame(cases, "goals_for INT, goals_against INT")
-        .withColumn(
-            "points",
-            points_expr(F.col("goals_for"), F.col("goals_against")).cast("int"),
-        )
-        .withColumn(
-            "result",
-            result_expr(F.col("goals_for"), F.col("goals_against")),
-        )
-)
-
-mismatches = [
-    (row.goals_for, row.goals_against)
-    for row in builder_df.collect()
-    if row.points != match_points(row.goals_for, row.goals_against)
-    or row.result != match_result(row.goals_for, row.goals_against)
-]
-assert not mismatches, (
-    f"FAILED: Spark builders disagree with scalar functions on {mismatches}"
-)
-logger.info(f"Spark builder tests: {len(cases)} passed (builders agree with scalar functions)")
 
 # COMMAND ----------
 
 # DBTITLE 1,Data tests: gold tables
-# Data tests on the built gold tables (run notebooks/gold/01_Gold_Model first).
+# Data tests on the gold tables built by the SDP pipeline (run an update first).
 fact = spark.table(GOLD_FACT_TEAM_MATCH)
 standings = spark.table(f"{GOLD_SCHEMA}.v_standings")
 
@@ -154,10 +89,21 @@ bad_standings = (
 assert bad_standings == 0, f"FAILED: {bad_standings} season-tournaments with broken standings"
 tests_passed += 1
 
-# dim_team covers every team in the fact
+# dim_team is SCD2: exactly one current version per team (__END_AT IS NULL)
+dim_current = spark.table(GOLD_DIM_TEAM).where(F.col("__END_AT").isNull())
+dup_current = dim_current.groupBy("team_id").count().where(F.col("count") != 1).count()
+assert dup_current == 0, f"FAILED: {dup_current} teams without exactly one current dim_team row"
+tests_passed += 1
+
+# current versions are well-formed SCD2 rows (validity window open, __START_AT set)
+bad_validity = dim_current.where(F.col("__START_AT").isNull()).count()
+assert bad_validity == 0, f"FAILED: {bad_validity} current dim_team rows without __START_AT"
+tests_passed += 1
+
+# the current team versions cover every team in the fact
 missing_teams = (
     fact.select("team_id").distinct()
-        .join(spark.table(GOLD_DIM_TEAM), "team_id", "left_anti")
+        .join(dim_current, "team_id", "left_anti")
         .count()
 )
 assert missing_teams == 0, f"FAILED: {missing_teams} fact teams missing from dim_team"
@@ -173,12 +119,12 @@ missing_dates = (
 assert missing_dates == 0, f"FAILED: {missing_dates} match dates missing from dim_date"
 tests_passed += 1
 
-logger.info("Data tests: 5 passed (grain, points, standings shape, dims coverage)")
+logger.info("Data tests: 7 passed (grain, points, standings shape, SCD2 dim_team, dims coverage)")
 
 # COMMAND ----------
 
 # DBTITLE 1,Summary
 logger.info(
-    f"Test run completed | {tests_passed} unit + data checks passed, "
-    "plus 7 Spark builder checks"
+    f"Test run completed | {tests_passed} data checks passed "
+    "(unit + builder tests live in tests/test_football_logic.py — pytest/CI)"
 )
