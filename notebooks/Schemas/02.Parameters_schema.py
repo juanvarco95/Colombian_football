@@ -5,7 +5,7 @@
 # MAGIC
 # MAGIC DDL string of the raw `parameters` JSON column stored in `football_col_dev.bronze.api_fixtures` (e.g. `{"league": "239", "season": "2022"}`). Used with `F.from_json` in **Transform Row Data**.
 # MAGIC
-# MAGIC Loaded via `%run ../Schemas/parameters_schema`.
+# MAGIC Loaded via `%run ../Schemas/02.Parameters_schema`.
 # MAGIC
 
 # COMMAND ----------

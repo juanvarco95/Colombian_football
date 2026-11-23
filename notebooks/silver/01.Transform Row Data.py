@@ -14,7 +14,7 @@
 # MAGIC
 # MAGIC **How it works**
 # MAGIC 1. Loads shared imports and the run logger via `%run ../common/01.Setup`.
-# MAGIC 2. Loads each schema from its own notebook in `../Schemas/` (`response_schema`, `parameters_schema`, `bronze_explode_schema`) via `%run`.
+# MAGIC 2. Loads each schema from its own notebook in `../Schemas/` (`03.Response_schema`, `02.Parameters_schema`, `01.Bronze_explode_schema`) via `%run`.
 # MAGIC 3. Parses the `response` / `parameters` JSON columns with `from_json` + `explode` and flattens them into one row per fixture.
 # MAGIC 4. Deduplicates to the latest ingest per fixture id (window `row_number` over `_ingested_at`), derives `round` / `number_round` from the API round label (null-safe `try_cast`), uses null-safe `try_cast` for the date, and enforces the explicit 22-column output schema (21 fixture columns incl. `number_round` + `_ingested_at`) with `.to(bronze_explode_schema)`.
 # MAGIC 5. Merges into silver keyed by `id`: inserts fixtures not yet present, and updates an existing row whenever the derived values differ (NULL-safe `IS DISTINCT FROM` over all columns) — so both newer ingests and transform-logic changes propagate.
@@ -30,17 +30,17 @@
 # COMMAND ----------
 
 # DBTITLE 1,Load response schema
-# MAGIC %run ../Schemas/response_schema
+# MAGIC %run ../Schemas/03.Response_schema
 
 # COMMAND ----------
 
 # DBTITLE 1,Load parameters schema
-# MAGIC %run ../Schemas/parameters_schema
+# MAGIC %run ../Schemas/02.Parameters_schema
 
 # COMMAND ----------
 
 # DBTITLE 1,Load bronze explode schema
-# MAGIC %run ../Schemas/bronze_explode_schema
+# MAGIC %run ../Schemas/01.Bronze_explode_schema
 
 # COMMAND ----------
 
@@ -115,7 +115,7 @@ bronze_explode_df = (
         ).otherwise(F.col('number_round')))
         .filter(F.col('rn') == 1)
         .drop('response', 'parameters', 'rn', 'round_parts')
-        # enforce the explicit 22-column output schema (21 fixture columns incl. number_round + _ingested_at) from ../Schemas/bronze_explode_schema
+        # enforce the explicit 22-column output schema (21 fixture columns incl. number_round + _ingested_at) from ../Schemas/01.Bronze_explode_schema
         .to(bronze_explode_schema)
 )
 

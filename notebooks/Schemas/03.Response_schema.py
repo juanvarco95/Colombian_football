@@ -5,7 +5,7 @@
 # MAGIC
 # MAGIC DDL string of the raw `response` JSON array stored in `football_col_dev.bronze.api_fixtures`, inferred from the actual bronze data. Used with `F.from_json` in **Transform Row Data**.
 # MAGIC
-# MAGIC Loaded via `%run ../Schemas/response_schema`.
+# MAGIC Loaded via `%run ../Schemas/03.Response_schema`.
 # MAGIC
 
 # COMMAND ----------
